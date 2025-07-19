@@ -21,7 +21,8 @@ import win32ui
 from PIL import Image
 from window.WindowFabric import WindowFabric
 from random import randint
-import os
+from PyQt6.QtWidgets import QApplication, QPushButton
+from ui.RoundSelect import RoundSelect
 
 
 for window in WindowFabric.getOpenedWindows():
@@ -29,19 +30,18 @@ for window in WindowFabric.getOpenedWindows():
     # if window.getTitle() == "Параметры":
     #     window.show()
 
-    try:
-        window.image(window.getTitle(), str(randint(1, 100))+".png")
-    except Exception as e:
-        print(f"Error: {e}")
+    # try:
+    #     window.image(window.getTitle(), str(randint(1, 100))+".png")
+    # except Exception as e:
+    #     print(f"Error: {e}")
 
     print(window.getTitle())
 
-names = []
 
-def winEnumHandler(hwnd, ctx):
-    if win32gui.IsWindowVisible(hwnd):
-        n = win32gui.GetWindowText(hwnd)
-        if n:
-            names.append(n)
 
-win32gui.EnumWindows(winEnumHandler, None)
+app = QApplication([])
+
+window = RoundSelect()
+window.show()
+
+app.exec()

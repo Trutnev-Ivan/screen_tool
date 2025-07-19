@@ -25,7 +25,6 @@ class Window:
         return self.height
 
     def show(self) -> None:
-        print(self.showCallable)
         self.showCallable()
 
     #TODO: refactor

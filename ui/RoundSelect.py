@@ -1,15 +1,36 @@
 import math
-
-from PyQt6.QtGui import QPainter, QBrush, QColor, QConicalGradient, QPen, QRadialGradient, QLinearGradient
+from PyQt6.QtGui import QPainter, QBrush, QColor, QPen, QRadialGradient
 from PyQt6.QtSvg import QSvgRenderer
-from PyQt6.QtWidgets import QWidget, QApplication, QLabel
-from PyQt6.QtCore import Qt, QRect, QRectF, QPointF, QPoint, QXmlStreamReader
+from PyQt6.QtWidgets import QWidget, QApplication
+from PyQt6.QtCore import Qt, QRectF, QPoint, QXmlStreamReader
 from math import sin, cos
+import os.path
 
 
 class RoundSelect(QWidget):
-    def __init__(self):
+    def __init__(self,
+                 radius=250,
+                 elemRadius=150,
+                 elems=[]
+                 ):
+        """
+        :param int radius:
+            radius from center elements; display how far circles placed from center
+        :param int elemRadius:
+            radius of circle element
+        :param dict[] elems:
+            description of circle element in format
+            {
+                "title" -> str, # display text title of element
+                "active" -> bool, # is active by default
+                "icon" -> str, # svg icon for elem circle
+            }
+        """
         super().__init__()
+
+        self.radius = int(radius) if radius > 0 else 250
+        self.elemRadius = int(elemRadius) if elemRadius > 0 else 150
+        self.elems = elems
 
         # Устанавливаем прозрачность
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
@@ -26,30 +47,30 @@ class RoundSelect(QWidget):
 
         self.activeIndex = 0
 
+        for i, elem in enumerate(self.elems):
+            if "active" in elem and elem["active"]:
+                self.activeIndex = i
+                break
+
+    # Обновляем текущий элемент при наведении на него мышью
     def mouseMoveEvent(self, a0, QMouseEvent=None):
-
-        #TODO: refactor
-
         center = QPoint(self.pos().x() + self.width() // 2, self.pos().y() + self.height() // 2)
-        radius = 250
-        countParts = 5
+        countParts = len(self.elems)
 
         alpha = 360 // countParts
+        degreeOffset = 180
 
         mousePosition = a0.pos()
-        circleRadius = 150
 
         index = None
         distance = 0
 
         for i in range(countParts):
 
-            x = radius * cos(math.radians(i * alpha)) + center.x()
-            y = radius * sin(math.radians(i * alpha)) + center.y()
+            x = self.radius * cos(math.radians(i * alpha + degreeOffset)) + center.x()
+            y = self.radius * sin(math.radians(i * alpha + degreeOffset)) + center.y()
 
             mousePositionDistance = math.sqrt((x - mousePosition.x()) ** 2 + (y - mousePosition.y()) ** 2)
-
-            print(mousePositionDistance)
 
             if index is None or distance > mousePositionDistance:
                 index = i
@@ -69,22 +90,27 @@ class RoundSelect(QWidget):
         painter.setPen(QPen(Qt.PenStyle.NoPen))
 
         center = QPoint(self.pos().x() + self.width() // 2, self.pos().y() + self.height() // 2)
-        radius = 250
-        countParts = 5
+        countParts = len(self.elems)
 
         alpha = 360 // countParts
-
-        circleRadius = 150
-
-        icon = open("icons/icon.svg", "r")
-        svgRenderer = QSvgRenderer(QXmlStreamReader(icon.read()))
+        degreeOffset = 180
 
         for i in range(countParts):
 
-            x = radius * cos(math.radians(i*alpha)) + center.x()
-            y = radius * sin(math.radians(i*alpha)) + center.y()
+            if "icon" in self.elems[i] and os.path.exists(self.elems[i]["icon"]) and self.elems[i]["icon"].endswith(".svg"):
+                icon = open(self.elems[i]["icon"], "r")
+            else:
+                icon = open("icons/default.svg", "r")
 
-            gradient = QRadialGradient(x + circleRadius / 2, y + circleRadius / 2, 100)
+            svgRenderer = QSvgRenderer(QXmlStreamReader(icon.read()))
+
+            x = self.radius * cos(math.radians(i*alpha + degreeOffset)) + center.x()
+            y = self.radius * sin(math.radians(i*alpha + degreeOffset)) + center.y()
+
+            gradient = QRadialGradient(
+                x + self.elemRadius / 2,
+                y + self.elemRadius / 2,
+                100)
 
             if self.activeIndex == i:
                 gradient.setColorAt(0.0, QColor(0, 0, 0, 120))
@@ -95,26 +121,22 @@ class RoundSelect(QWidget):
 
             painter.setBrush(QBrush(gradient))
 
-            imgX = x + circleRadius / 2 - circleRadius * 0.75 / 2
-            imgY = y + circleRadius / 2 - circleRadius * 0.75 / 2
+            imgX = x + self.elemRadius / 2 - self.elemRadius * 0.75 / 2
+            imgY = y + self.elemRadius / 2 - self.elemRadius * 0.75 / 2
 
-            svgRenderer.render(painter, QRectF(imgX, imgY, circleRadius * 0.75, circleRadius * 0.75))
-            painter.drawEllipse(int(x), int(y), circleRadius, circleRadius)
-
-            # label = QLabel("text")
-            # label.move(center.x() - label.width() / 2, center.y() - label.height() / 2)
-
-            # painter.drawText(s="text", x=center.x() - label.width() / 2, y=center.y() - label.height() / 2)
+            svgRenderer.render(painter, QRectF(imgX, imgY, self.elemRadius * 0.75, self.elemRadius * 0.75))
+            painter.drawEllipse(int(x), int(y), self.elemRadius, self.elemRadius)
 
         pen = QPen()
         pen.setColor(QColor("white"))
-
-        # label = QLabel("text")
-        # label.move(center.x() - label.width() / 2, center.y() - label.height() / 2)
 
         font = painter.font()
         font.setPixelSize(22)
         painter.setFont(font)
         painter.setPen(pen)
-        painter.drawText(center.x(), center.y() + circleRadius // 2, "Hello, world " + str(self.activeIndex))
+        painter.drawText(
+            center.x(),
+            center.y() + self.elemRadius // 2,
+            str(self.elems[self.activeIndex]["title"])
+        )
 

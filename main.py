@@ -40,8 +40,25 @@ for window in WindowFabric.getOpenedWindows():
 
 
 app = QApplication([])
+windowWidth = app.primaryScreen().size().width()
+windowHeight = app.primaryScreen().size().height()
 
-window = RoundSelect()
+window = RoundSelect(elems=[
+    {
+        "title": "All Icons",
+        "icon": "icons/icon.svg"
+    },
+    {
+        "title": "Scroll window",
+        "active": True
+    },
+    {
+        "title": "3d Item"
+    }
+],
+    radius= (windowWidth + windowHeight) * 0.05,
+    elemRadius=(windowWidth + windowHeight) * 0.03
+)
 window.show()
 
 app.exec()
